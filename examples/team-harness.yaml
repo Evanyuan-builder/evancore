@@ -1,0 +1,60 @@
+# EvanCore — Example TeamHarness spec
+# ====================================
+#
+# A three-member team with sequential routing and a shared memory namespace.
+# The team is the atomic release unit — individual members are NOT
+# independently releasable (deliberate invariant; see docs/philosophy.md §6).
+#
+# Lifecycle operations (promote / rollback / upgrade) address the team
+# artifact by its content hash, not by member.
+
+kind: TeamHarness
+id: research-team
+
+members:
+  - id: planner
+    role:
+      ref: "rolecore://roles/analyst"
+      version: "latest"
+    model:
+      provider: ollama
+      model_id: qwen3:14b
+      temperature: 0.2
+      max_tokens: 4096
+    tools: []
+
+  - id: researcher
+    role:
+      ref: "rolecore://roles/researcher"
+      version: "latest"
+    model:
+      provider: ollama
+      model_id: qwen3:14b
+      temperature: 0.3
+      max_tokens: 4096
+    tools:
+      - id: web-search
+        permissions: [read]
+      - id: web-crawl
+        permissions: [read]
+
+  - id: writer
+    role:
+      ref: "rolecore://roles/writer"
+      version: "latest"
+    model:
+      provider: ollama
+      model_id: qwen3:14b
+      temperature: 0.3
+      max_tokens: 4096
+    tools:
+      - id: report-write
+        permissions: [write]
+      - id: memory-write
+        permissions: [write]
+
+routing: sequential
+
+shared_memory:
+  ns: "research-team.shared"
+  ttl: "7d"

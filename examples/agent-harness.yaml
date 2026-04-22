@@ -1,0 +1,53 @@
+# EvanCore — Example AgentHarness spec
+# =====================================
+#
+# A single agent that exercises all four v2 backend lines:
+#
+#   role   → builtin://roles/researcher     (Role backend, zero-dep)
+#   skills → research-ops                   (Skill backend, catalog-resolved)
+#   memory → localmem://                    (Memory backend, offline)
+#   tools  → demo__echo / demo__reverse     (Tool backend via MCP)
+#
+# `evan validate this-file.yaml` checks schema + reference closure.
+# `evan release this-file.yaml --sign <key>` emits a content-addressed,
+# signed artifact addressable by its blake2b-64 hash prefix.
+
+kind: AgentHarness
+id: example-researcher
+
+role:
+  ref: "builtin://roles/researcher"
+  version: "latest"
+
+memory:
+  private_ns: "localmem://example-researcher.private"
+  shared_ns: []
+  ttl: "30d"
+
+model:
+  provider: ollama
+  model_id: qwen3:8b
+  temperature: 0.3
+  max_tokens: 4096
+
+tools:
+  - id: memory-write
+    permissions: [write]
+  - id: memory-read
+    permissions: [read]
+  - id: demo__echo
+    permissions: [read]
+  - id: demo__reverse
+    permissions: [read]
+
+skills:
+  - research-ops
+
+policies:
+  budget_limit_usd: 1.0
+  rate_limit: "100req/hour"
+
+recovery:
+  max_retries: 1
+  backoff: exponential
+  fallback: stop

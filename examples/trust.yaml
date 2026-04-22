@@ -1,0 +1,46 @@
+# EvanCore — Example trust.yaml
+# ==============================
+#
+# A trust file declares which Ed25519 public keys are accepted when
+# verifying signed harness artifacts on this host.
+#
+# `evan pull <registry>/<id>@<hash> --verify` runs the signature check
+# against this file. Revocation is checked against revocation v2 lists.
+
+version: 2
+
+keys:
+  - id: alice@acme
+    type: ed25519
+    public: "ssh-ed25519 AAAAC3Nz...EXAMPLE...alice"
+    added: "2026-04-22T10:00:00Z"
+    scope:
+      - "acme/*"                        # authorized to sign artifacts under acme/
+      - "internal/*"
+
+  - id: release-bot@acme
+    type: ed25519
+    public: "ssh-ed25519 AAAAC3Nz...EXAMPLE...bot"
+    added: "2026-04-22T10:00:00Z"
+    scope:
+      - "acme/*"
+
+revocation:
+  # Where to fetch fresh revocation lists. Local cache checked first;
+  # stale-after controls hard-fail behavior when no network is available.
+  sources:
+    - url: "https://registry.acme.internal/revocation"
+      stale_after: "24h"
+  # Explicit local revocations override any source.
+  revoked:
+    - key_id: "former-contractor@acme"
+      revoked_at: "2026-04-01T00:00:00Z"
+      reason: "off-boarding"
+
+policy:
+  # Require at least one valid signature whose key is in-scope for the
+  # artifact's registry path. If no trusted in-scope signature exists,
+  # `evan verify` and `evan pull --verify` fail closed.
+  require_signed: true
+  unknown_key: "reject"                 # reject | warn | allow
+  revoked_key: "reject"                 # reject | warn
