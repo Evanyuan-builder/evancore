@@ -2,579 +2,447 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>EvanCore — Terraform for AI agents</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EvanCore — a lab for AI agent harnesses</title>
+<meta name="description" content="Change an agent config, instantly know if it got better. Run two harness configs on the same task, score the outcomes, see which won — then ship the winner with one command." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;800;900&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital@1&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #0a0d12;
-    --bg-elev: #10151c;
-    --bg-term: #0d1117;
-    --line: #1c2431;
-    --line-strong: #2a3648;
-    --text: #d8e0ea;
-    --text-dim: #7c8699;
-    --text-mute: #4a5468;
-    --accent: #7cc4d4;
-    --accent-2: #9dd7e3;
-    --accent-glow: rgba(124, 196, 212, 0.28);
-    --accent-soft: rgba(124, 196, 212, 0.12);
-    --warn: #d4a36a;
-    --ok: #7cd4a6;
+    --ink:        #080b10;
+    --ink-2:      #0a0e14;
+    --panel:      #0d131c;
+    --panel-2:    #101824;
+    --line:       #1b2738;
+    --line-2:     #243245;
+    --slate:      #7c8699;
+    --slate-2:    #9aa6ba;
+    --fog:        #d8e0ea;
+    --white:      #eef4fc;
+    --cyan:       #7cc4d4;
+    --cyan-hi:    #a6e2ef;
+    --green:      #7cd4a6;
+    --amber:      #d4a36a;
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --disp: "Archivo", system-ui, sans-serif;
   }
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Cascadia Mono", "Roboto Mono", Consolas, monospace;
-    font-size: 14px;
-    line-height: 1.55;
-    -webkit-font-smoothing: antialiased;
-    letter-spacing: 0.01em;
-  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
   body {
-    min-height: 100vh;
-    background:
-      radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(124, 196, 212, 0.06), transparent 60%),
-      radial-gradient(ellipse 900px 500px at 50% 110%, rgba(124, 196, 212, 0.04), transparent 60%),
-      var(--bg);
-  }
-  .wrap {
-    max-width: 1380px;
-    margin: 0 auto;
-    padding: 56px 40px 64px;
-  }
-  /* ---- hero ---- */
-  .hero { text-align: center; margin-bottom: 40px; }
-  .brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 14px 6px 10px;
-    border: 1px solid var(--line-strong);
-    border-radius: 100px;
-    background: var(--bg-elev);
-    font-size: 12px;
-    color: var(--text-dim);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 26px;
-  }
-  .brand-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 10px var(--accent-glow);
-    animation: breathe 2.6s ease-in-out infinite;
-  }
-  .title {
-    font-size: 40px;
+    background: var(--ink);
+    color: var(--fog);
+    font-family: var(--disp);
     font-weight: 500;
-    letter-spacing: -0.02em;
-    margin: 0 0 14px;
-    color: #eaf1fa;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
-  .subtitle {
-    font-size: 15px;
-    color: var(--text-dim);
-    margin: 0;
-    letter-spacing: 0.01em;
-  }
-  .subtitle em { color: var(--accent-2); font-style: normal; }
 
-  /* ---- stage ---- */
-  .stage {
-    position: relative;
-    background: linear-gradient(180deg, #0c1118 0%, #0a0e14 100%);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 28px 32px 24px;
-    margin-bottom: 14px;
-    overflow: hidden;
-  }
-  .stage::before {
-    content: "";
-    position: absolute;
-    inset: 0;
+  /* ── Atmosphere: graph-paper grid + drifting mesh blobs + grain ── */
+  .bg { position: fixed; inset: 0; z-index: -2; overflow: hidden; }
+  .grid {
+    position: absolute; inset: -2px;
     background-image:
-      linear-gradient(var(--line-strong) 1px, transparent 1px),
-      linear-gradient(90deg, var(--line-strong) 1px, transparent 1px);
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
     background-size: 56px 56px;
-    opacity: 0.08;
-    pointer-events: none;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, #000 30%, transparent 78%);
+    opacity: .35;
   }
-  svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
-
-  /* ---- nodes ---- */
-  .node rect {
-    fill: var(--bg-elev);
-    stroke: var(--line-strong);
-    stroke-width: 1;
-    transition: stroke 0.35s ease, fill 0.35s ease, filter 0.35s ease;
-  }
-  .node text {
-    fill: var(--text-dim);
-    font-family: inherit;
-    font-size: 13px;
-    transition: fill 0.35s ease;
-  }
-  .node.active rect {
-    stroke: var(--accent);
-    fill: #0f1822;
-    filter: drop-shadow(0 0 8px var(--accent-glow));
-  }
-  .node.active text { fill: var(--accent-2); }
-  .node.dim rect { opacity: 0.55; }
-  .node.dim text { fill: var(--text-mute); }
-
-  .artifact rect {
-    fill: #0d1620;
-    stroke: var(--line-strong);
-    stroke-width: 1;
-    stroke-dasharray: 4 4;
-    transition: all 0.5s ease;
-  }
-  .artifact.materialized rect {
-    stroke: var(--accent);
-    stroke-dasharray: 0;
-    fill: #0f1a26;
-    filter: drop-shadow(0 0 14px var(--accent-glow));
-  }
-  .artifact .label {
-    fill: var(--text-mute);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-  .artifact.materialized .label { fill: var(--accent-2); }
-  .artifact .hash {
-    fill: var(--text);
-    font-size: 15px;
-    letter-spacing: 0.02em;
-  }
-  .artifact .meta {
-    fill: var(--text-dim);
-    font-size: 12px;
-  }
-  .artifact .sig {
-    fill: var(--ok);
-    font-size: 12px;
-    opacity: 0;
-    transition: opacity 0.6s ease;
-  }
-  .artifact.signed .sig { opacity: 1; }
-
-  /* ---- lines ---- */
-  .line {
-    fill: none;
-    stroke: var(--line-strong);
-    stroke-width: 1.4;
-    stroke-opacity: 0.7;
-  }
-  .line.flow {
-    stroke: var(--accent);
-    stroke-dasharray: 6 540;
-    stroke-dashoffset: 540;
-    stroke-opacity: 0;
-    animation: flowLight 1.6s ease-out forwards;
-  }
-  .line.lit {
-    stroke: var(--accent);
-    stroke-opacity: 0.55;
+  .blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: .5; }
+  .blob.c1 { width: 620px; height: 620px; background: radial-gradient(circle, rgba(124,196,212,.42), transparent 68%); top: -240px; left: -160px; animation: drift1 26s ease-in-out infinite; }
+  .blob.c2 { width: 520px; height: 520px; background: radial-gradient(circle, rgba(124,212,166,.26), transparent 70%); top: 120px; right: -180px; animation: drift2 32s ease-in-out infinite; }
+  .blob.c3 { width: 460px; height: 460px; background: radial-gradient(circle, rgba(212,163,106,.18), transparent 72%); top: 720px; left: 40%; animation: drift1 38s ease-in-out infinite reverse; }
+  @keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(60px,40px)} }
+  @keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,50px)} }
+  .grain {
+    position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  @keyframes flowLight {
-    0%   { stroke-dashoffset: 540; stroke-opacity: 0.2; }
-    35%  { stroke-opacity: 1; filter: drop-shadow(0 0 3px var(--accent-glow)); }
-    85%  { stroke-opacity: 1; filter: drop-shadow(0 0 3px var(--accent-glow)); }
-    100% { stroke-dashoffset: 0; stroke-opacity: 0.85; stroke-dasharray: 0; }
-  }
-  @keyframes breathe {
-    0%, 100% { opacity: 0.55; transform: scale(1); }
-    50%      { opacity: 1;    transform: scale(1.25); }
-  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
 
-  /* ---- tags ---- */
-  .tags {
-    display: flex;
-    justify-content: center;
-    gap: 24px;
-    margin: 8px 0 36px;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--text-mute);
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(14px);
+    background: linear-gradient(var(--ink) 30%, transparent);
+    border-bottom: 1px solid transparent;
   }
-  .tag { display: inline-flex; align-items: center; gap: 8px; }
-  .tag::before {
-    content: "";
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--text-mute);
-  }
-  .tag.pos::before { background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); }
-  .tag.pos { color: var(--accent-2); }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 66px; }
+  .brand { font-weight: 900; letter-spacing: -.02em; font-size: 19px; display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 14px var(--cyan); }
+  .navlinks { display: flex; gap: 26px; align-items: center; font-family: var(--mono); font-size: 13px; font-weight: 500; }
+  .navlinks a { color: var(--slate-2); text-decoration: none; transition: color .2s; }
+  .navlinks a:hover { color: var(--white); }
+  .navlinks .ghost { border: 1px solid var(--line-2); padding: 7px 14px; border-radius: 8px; color: var(--fog); }
+  .navlinks .ghost:hover { border-color: var(--cyan); color: var(--cyan-hi); }
+  @media (max-width: 720px){ .navlinks a:not(.ghost){ display:none; } }
 
-  /* ---- terminal ---- */
-  .terminal {
-    background: var(--bg-term);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
-  }
-  .term-head {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    background: #0b1017;
-    border-bottom: 1px solid var(--line);
-    gap: 8px;
-  }
-  .term-dot { width: 11px; height: 11px; border-radius: 50%; background: #2a3040; }
-  .term-title {
-    flex: 1;
-    text-align: center;
-    font-size: 12px;
-    color: var(--text-mute);
-    letter-spacing: 0.05em;
-  }
-  .term-body {
-    padding: 18px 20px 22px;
-    min-height: 180px;
-    font-size: 13px;
-    line-height: 1.7;
-  }
-  .term-line { display: block; white-space: pre; }
-  .term-line .prompt { color: var(--accent); }
-  .term-line .cmd { color: var(--text); }
-  .term-line.out { color: var(--text-dim); padding-left: 0; }
-  .term-line.ok { color: var(--ok); }
-  .term-line.evt { color: var(--accent-2); }
-  .cursor {
-    display: inline-block;
-    width: 8px;
-    height: 14px;
-    background: var(--accent);
-    vertical-align: text-bottom;
-    margin-left: 2px;
-    animation: blink 1s steps(2) infinite;
-  }
-  @keyframes blink { 50% { opacity: 0; } }
+  /* ── Reveal on load ── */
+  .rise { opacity: 0; transform: translateY(22px); animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
 
-  /* ---- foot ---- */
-  .foot {
-    text-align: center;
-    margin-top: 28px;
-    font-size: 11px;
-    color: var(--text-mute);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
+  /* ── Hero ── */
+  header { padding: 86px 0 40px; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--cyan); display: inline-flex; align-items: center; gap: 10px; margin-bottom: 26px;
   }
-  .foot .sep { margin: 0 10px; color: var(--line-strong); }
+  .eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--cyan); display: inline-block; }
+  h1 {
+    font-family: var(--disp); font-weight: 900; letter-spacing: -.035em; line-height: .98;
+    font-size: clamp(46px, 8.2vw, 104px);
+    color: var(--white);
+  }
+  h1 .muted { color: var(--slate); }
+  h1 .glow { color: var(--cyan-hi); text-shadow: 0 0 38px rgba(124,196,212,.45); }
+  .lede {
+    margin-top: 30px; max-width: 660px; font-size: clamp(17px, 2.1vw, 20px);
+    color: var(--slate-2); font-weight: 500; line-height: 1.55;
+  }
+  .lede b { color: var(--fog); font-weight: 600; }
+  .cta-row { margin-top: 38px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .btn {
+    font-family: var(--mono); font-size: 14px; font-weight: 700; text-decoration: none;
+    padding: 13px 22px; border-radius: 10px; display: inline-flex; align-items: center; gap: 9px;
+    transition: transform .18s, box-shadow .25s, background .25s;
+  }
+  .btn.primary { background: var(--cyan); color: #04222b; box-shadow: 0 10px 34px -12px rgba(124,196,212,.8); }
+  .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 16px 44px -12px rgba(124,196,212,.95); }
+  .btn.ghost { color: var(--fog); border: 1px solid var(--line-2); }
+  .btn.ghost:hover { border-color: var(--cyan); color: var(--cyan-hi); transform: translateY(-2px); }
+  .chips { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 10px; font-family: var(--mono); font-size: 12px; }
+  .chip { color: var(--slate-2); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; background: rgba(13,19,28,.6); }
+  .chip b { color: var(--green); font-weight: 700; }
+  .chip .k { color: var(--cyan); }
 
-  @media (max-width: 780px) {
-    .wrap { padding: 32px 16px 40px; }
-    .title { font-size: 28px; }
-    .subtitle { font-size: 13px; }
-    .tags { flex-direction: column; gap: 8px; align-items: center; }
-    .stage { padding: 16px; }
+  /* ── Section scaffolding ── */
+  section { padding: 60px 0; }
+  .kicker { font-family: var(--mono); font-size: 12.5px; letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin-bottom: 16px; }
+  .h2 { font-family: var(--disp); font-weight: 800; letter-spacing: -.025em; font-size: clamp(28px, 4.4vw, 44px); color: var(--white); line-height: 1.05; }
+  .sub { margin-top: 16px; color: var(--slate-2); max-width: 620px; font-size: 16.5px; }
+
+  .reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s, transform .8s; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ── The instrument (compare panel) ── */
+  .instrument {
+    margin-top: 34px; border: 1px solid var(--line-2); border-radius: 18px; overflow: hidden;
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    box-shadow: 0 50px 110px -50px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.04);
   }
+  .term-bar { display: flex; align-items: center; gap: 8px; padding: 13px 18px; border-bottom: 1px solid var(--line); background: rgba(8,11,16,.5); }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+  .term-bar i:nth-child(1){ background:#e5685f; } .term-bar i:nth-child(2){ background:#e0b54e; } .term-bar i:nth-child(3){ background:#62c87a; }
+  .term-bar .cmd { margin-left: 12px; font-family: var(--mono); font-size: 12.5px; color: var(--slate); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .term-bar .cmd b { color: var(--cyan); font-weight: 500; }
+  .panel-body { padding: 26px; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 680px){ .cards { grid-template-columns: 1fr; } }
+  .card {
+    position: relative; border: 1px solid var(--line); border-radius: 14px; padding: 20px 20px 18px;
+    background: var(--panel); transition: transform .3s, border-color .3s;
+  }
+  .card .tag { font-family: var(--mono); font-size: 12px; color: var(--slate); letter-spacing: .04em; }
+  .card .tag b { color: var(--fog); font-weight: 700; }
+  .card .verdict-pill { position: absolute; top: 16px; right: 16px; font-family: var(--mono); font-size: 11px; padding: 3px 9px; border-radius: 999px; opacity: 0; transition: opacity .5s; }
+  .card .score { font-family: var(--disp); font-weight: 900; letter-spacing: -.04em; font-size: 58px; line-height: 1; margin: 14px 0 4px; color: var(--fog); }
+  .card .score .den { font-size: 22px; color: var(--slate); font-weight: 600; }
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-top: 14px; font-family: var(--mono); font-size: 12.5px; }
+  .metrics .m { display: flex; justify-content: space-between; border-top: 1px dashed var(--line); padding-top: 7px; }
+  .metrics .m span { color: var(--slate); }
+  .metrics .m b { color: var(--fog); font-weight: 500; }
+
+  .card.win { border-color: rgba(124,196,212,.55); box-shadow: 0 0 0 1px rgba(124,196,212,.25), 0 30px 70px -40px rgba(124,196,212,.6); }
+  .card.win::after {
+    content: ""; position: absolute; inset: 0; border-radius: 14px; pointer-events: none;
+    background: linear-gradient(120deg, transparent 30%, rgba(124,196,212,.10) 50%, transparent 70%);
+    background-size: 220% 100%; animation: sweep 3.4s ease-in-out infinite;
+  }
+  @keyframes sweep { 0%{background-position:120% 0} 100%{background-position:-120% 0} }
+  .card.win .verdict-pill { opacity: 1; color: #04222b; background: var(--cyan); font-weight: 700; }
+  .card.win .score { color: var(--cyan-hi); text-shadow: 0 0 30px rgba(124,196,212,.5); }
+
+  .delta { margin-top: 20px; font-family: var(--mono); font-size: 13px; color: var(--slate-2); border-top: 1px solid var(--line); padding-top: 16px; }
+  .delta .lbl { color: var(--slate); text-transform: uppercase; letter-spacing: .12em; font-size: 11px; }
+  .delta .row { margin-top: 8px; }
+  .delta .row .ch { color: var(--amber); }
+  .delta .row .old { color: var(--slate); text-decoration: line-through; opacity: .7; }
+  .delta .row .new { color: var(--green); }
+  .verdict {
+    margin-top: 18px; border: 1px solid rgba(124,212,166,.3); border-radius: 12px; padding: 16px 18px;
+    background: linear-gradient(180deg, rgba(124,212,166,.07), transparent);
+  }
+  .verdict .head { font-family: var(--disp); font-weight: 800; color: var(--white); font-size: 17px; letter-spacing: -.01em; }
+  .verdict .why { margin-top: 8px; color: var(--slate-2); font-size: 14.5px; font-family: var(--mono); line-height: 1.55; }
+  .verdict .ship { margin-top: 14px; font-family: var(--mono); font-size: 13.5px; color: var(--cyan); }
+  .verdict .ship .pfx { color: var(--slate); }
+
+  /* ── Bento (backends) ── */
+  .bento { margin-top: 34px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 820px){ .bento { grid-template-columns: 1fr 1fr; } }
+  .tile { border: 1px solid var(--line); border-radius: 14px; padding: 20px; background: var(--panel); transition: transform .25s, border-color .25s; }
+  .tile:hover { transform: translateY(-4px); border-color: var(--line-2); }
+  .tile .name { font-family: var(--mono); font-weight: 700; color: var(--fog); font-size: 15px; }
+  .tile .desc { margin-top: 8px; color: var(--slate); font-size: 13px; line-height: 1.5; }
+  .tile.feature { border-color: rgba(124,196,212,.4); background: linear-gradient(180deg, rgba(124,196,212,.08), var(--panel)); }
+  .tile.feature .name { color: var(--cyan-hi); }
+  .tile .badge { display: inline-block; margin-top: 12px; font-family: var(--mono); font-size: 11px; color: var(--green); border: 1px solid rgba(124,212,166,.3); border-radius: 999px; padding: 3px 9px; }
+
+  /* ── Spine ── */
+  .spine { margin-top: 30px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; align-items: center; }
+  @media (max-width: 820px){ .spine { grid-template-columns: 1fr; } }
+  .pipe { list-style: none; display: flex; flex-direction: column; gap: 0; }
+  .pipe li { display: flex; gap: 16px; padding: 14px 0; border-left: 1px solid var(--line-2); margin-left: 8px; padding-left: 22px; position: relative; }
+  .pipe li::before { content: ""; position: absolute; left: -5px; top: 20px; width: 9px; height: 9px; border-radius: 50%; background: var(--ink); border: 1px solid var(--cyan); }
+  .pipe li b { font-family: var(--mono); color: var(--fog); font-weight: 700; font-size: 14px; }
+  .pipe li p { color: var(--slate); font-size: 13.5px; margin-top: 3px; }
+  .ship-card {
+    border: 1px solid var(--line-2); border-radius: 14px; padding: 20px; background: var(--ink-2);
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  }
+  .ship-card .pfx { color: var(--slate); } .ship-card .g { color: var(--green); } .ship-card .c { color: var(--cyan); } .ship-card .a { color: var(--amber); }
+
+  /* ── Positioning ── */
+  .pullquote { margin-top: 20px; border-left: 2px solid var(--cyan); padding: 6px 0 6px 24px; }
+  .pullquote p { font-family: "Newsreader", serif; font-style: italic; font-size: clamp(20px, 3vw, 28px); color: var(--fog); line-height: 1.4; }
+  .pullquote p .hl { color: var(--cyan-hi); font-style: normal; font-family: var(--mono); font-size: .8em; }
+
+  .nots { margin-top: 26px; display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+  @media (max-width: 720px){ .nots { grid-template-columns: 1fr; } }
+  .not { border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .not .x { font-family: var(--mono); color: var(--amber); font-size: 12px; }
+  .not p { margin-top: 6px; color: var(--slate-2); font-size: 13.5px; }
+
+  /* ── CTA ── */
+  .endcta { text-align: center; padding: 80px 0 40px; }
+  .endcta h2 { font-family: var(--disp); font-weight: 900; letter-spacing: -.03em; font-size: clamp(32px, 6vw, 60px); color: var(--white); line-height: 1; }
+  .endcta p { margin: 18px auto 30px; color: var(--slate-2); max-width: 460px; }
+  .endcta .cta-row { justify-content: center; }
+
+  footer { border-top: 1px solid var(--line); padding: 30px 0 70px; }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; font-family: var(--mono); font-size: 12.5px; color: var(--slate); }
+  footer a { color: var(--slate-2); text-decoration: none; } footer a:hover { color: var(--cyan); }
+  footer .closed { color: var(--slate); }
+  footer .closed b { color: var(--fog); font-weight: 500; }
 </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="bg"><div class="grid"></div><div class="blob c1"></div><div class="blob c2"></div><div class="blob c3"></div></div>
+  <div class="grain"></div>
 
-    <!-- HERO -->
-    <section class="hero">
-      <div class="brand">
-        <span class="brand-dot"></span>
-        <span>EvanCore</span>
+  <nav>
+    <div class="wrap">
+      <div class="brand"><span class="dot"></span>EvanCore</div>
+      <div class="navlinks">
+        <a href="#lab">the lab</a>
+        <a href="#run">no API key</a>
+        <a href="#spine">the spine</a>
+        <a class="ghost" href="https://github.com/Evanyuan-builder/evancore">GitHub ↗</a>
       </div>
-      <h1 class="title">Terraform for AI agents.</h1>
-      <p class="subtitle">CLI-first Harness Engineering — <em>content-addressed, signed, reversible.</em></p>
-    </section>
-
-    <!-- STAGE -->
-    <section class="stage">
-      <svg viewBox="0 0 1320 640" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
-            <path d="M0,0 L10,5 L0,10 z" fill="var(--line-strong)" />
-          </marker>
-        </defs>
-
-        <!-- BUILD PATH LINES -->
-        <path class="line" id="l-spec-val"  d="M 230,90 L 340,90"  marker-end="url(#arrow)"/>
-        <path class="line" id="l-val-asm"   d="M 460,90 L 570,90"  marker-end="url(#arrow)"/>
-        <path class="line" id="l-asm-rel"   d="M 690,90 L 800,90"  marker-end="url(#arrow)"/>
-        <path class="line" id="l-rel-art"   d="M 860,115 L 880,210"/>
-
-        <!-- OPS LINES: artifact → rollback / upgrade / promote -->
-        <path class="line" id="l-art-rb"    d="M 880,330 L 580,394" marker-end="url(#arrow)"/>
-        <path class="line" id="l-art-up"    d="M 880,330 L 880,394" marker-end="url(#arrow)"/>
-        <path class="line" id="l-art-prom"  d="M 880,330 L 1180,394" marker-end="url(#arrow)"/>
-
-        <!-- ENV LINES: promote → staging / prod -->
-        <path class="line" id="l-prom-stg"  d="M 1160,444 L 1100,489" marker-end="url(#arrow)"/>
-        <path class="line" id="l-prom-prd"  d="M 1200,444 L 1240,489" marker-end="url(#arrow)"/>
-
-        <!-- DISTRIBUTION LINES -->
-        <path class="line" id="l-pub-reg"   d="M 260,576 L 380,576"  marker-end="url(#arrow)"/>
-        <path class="line" id="l-reg-pull"  d="M 500,576 L 670,576"  marker-end="url(#arrow)"/>
-        <path class="line" id="l-pull-ver"  d="M 790,576 L 900,576"  marker-end="url(#arrow)"/>
-
-        <!-- TOP ROW: build pipeline -->
-        <g class="node" id="n-spec">
-          <rect x="110" y="65" width="120" height="50" rx="6"/>
-          <text x="170" y="95" text-anchor="middle">spec.yaml</text>
-        </g>
-        <g class="node" id="n-validate">
-          <rect x="340" y="65" width="120" height="50" rx="6"/>
-          <text x="400" y="95" text-anchor="middle">validate</text>
-        </g>
-        <g class="node" id="n-assemble">
-          <rect x="570" y="65" width="120" height="50" rx="6"/>
-          <text x="630" y="95" text-anchor="middle">assemble</text>
-        </g>
-        <g class="node" id="n-release">
-          <rect x="800" y="65" width="120" height="50" rx="6"/>
-          <text x="860" y="95" text-anchor="middle">release</text>
-        </g>
-
-        <!-- ARTIFACT (center) -->
-        <g class="artifact" id="artifact">
-          <rect x="740" y="210" width="280" height="120" rx="8"/>
-          <text class="label" x="880" y="238" text-anchor="middle">HARNESS ARTIFACT</text>
-          <text class="hash"  x="880" y="272" text-anchor="middle" id="art-hash">h-·········</text>
-          <text class="meta"  x="880" y="296" text-anchor="middle" id="art-ver">av</text>
-          <text class="sig"   x="880" y="318" text-anchor="middle" id="art-sig">✍ alice@acme</text>
-        </g>
-
-        <!-- OPS ROW -->
-        <g class="node" id="n-rollback">
-          <rect x="500" y="394" width="160" height="50" rx="6"/>
-          <text x="580" y="424" text-anchor="middle">rollback</text>
-        </g>
-        <g class="node" id="n-upgrade">
-          <rect x="800" y="394" width="160" height="50" rx="6"/>
-          <text x="880" y="424" text-anchor="middle">upgrade</text>
-        </g>
-        <g class="node" id="n-promote">
-          <rect x="1100" y="394" width="160" height="50" rx="6"/>
-          <text x="1180" y="424" text-anchor="middle">promote</text>
-        </g>
-
-        <!-- ENV ROW -->
-        <g class="node" id="n-staging">
-          <rect x="1020" y="489" width="160" height="42" rx="6"/>
-          <text x="1100" y="515" text-anchor="middle">staging</text>
-        </g>
-        <g class="node" id="n-prod">
-          <rect x="1180" y="489" width="160" height="42" rx="6"/>
-          <text x="1260" y="515" text-anchor="middle">prod</text>
-        </g>
-
-        <!-- DISTRIBUTION ROW -->
-        <g class="node" id="n-publish">
-          <rect x="140" y="555" width="120" height="42" rx="6"/>
-          <text x="200" y="581" text-anchor="middle">publish</text>
-        </g>
-        <g class="node" id="n-registry">
-          <rect x="380" y="555" width="120" height="42" rx="6"/>
-          <text x="440" y="581" text-anchor="middle">registry</text>
-        </g>
-        <g class="node" id="n-pull">
-          <rect x="670" y="555" width="120" height="42" rx="6"/>
-          <text x="730" y="581" text-anchor="middle">pull</text>
-        </g>
-        <g class="node" id="n-verify">
-          <rect x="900" y="555" width="120" height="42" rx="6"/>
-          <text x="960" y="581" text-anchor="middle">verify</text>
-        </g>
-      </svg>
-    </section>
-
-    <div class="tags">
-      <span class="tag">Not a runtime framework</span>
-      <span class="tag">Not orchestration</span>
-      <span class="tag pos">Lifecycle for agent artifacts</span>
     </div>
+  </nav>
 
-    <!-- TERMINAL -->
-    <section class="terminal">
-      <div class="term-head">
-        <span class="term-dot"></span>
-        <span class="term-dot"></span>
-        <span class="term-dot"></span>
-        <span class="term-title">evan — harness engineering</span>
+  <header>
+    <div class="wrap">
+      <div class="eyebrow rise" style="animation-delay:.05s">A lab for AI agent harnesses</div>
+      <h1 class="rise" style="animation-delay:.12s">Change a config.<br /><span class="glow">Know if it</span> <span class="muted">got better.</span></h1>
+      <p class="lede rise" style="animation-delay:.26s">
+        You tune an agent — a prompt, a tool, a memory setting — and you don't actually know if it improved.
+        EvanCore runs <b>two harness configs on the same task</b>, scores the outcomes, and shows which won —
+        output, diff, cost, verdict. Then the winner <b>ships with one command.</b>
+      </p>
+      <div class="cta-row rise" style="animation-delay:.4s">
+        <a class="btn primary" href="#lab">See it run ▸</a>
+        <a class="btn ghost" href="https://github.com/Evanyuan-builder/evancore/issues">Request access</a>
       </div>
-      <div class="term-body" id="term"></div>
-    </section>
-
-    <div class="foot">
-      <span>github.com</span><span class="sep">/</span><span>evancore</span>
+      <div class="chips rise" style="animation-delay:.54s">
+        <span class="chip"><span class="k">$</span> evan compare a.yaml b.yaml</span>
+        <span class="chip">runs with <b>no API key</b></span>
+        <span class="chip"><b>633</b> tests passing</span>
+        <span class="chip">public design · private core</span>
+      </div>
     </div>
-  </div>
+  </header>
 
-<script>
-(() => {
-  const CYCLE_MS = 15500;
-  const termEl = document.getElementById('term');
+  <!-- ── THE LAB ── -->
+  <section id="lab">
+    <div class="wrap">
+      <div class="kicker reveal">The lab · evan compare</div>
+      <div class="h2 reveal">Two configs. One task. The judge decides.</div>
+      <p class="sub reveal">Here, two variants differ only by model. An LLM judge scores both on your stated criteria. The cost and tokens are real; the config delta is computed from the specs.</p>
 
-  const $ = id => document.getElementById(id);
-  const nodes = ['n-spec','n-validate','n-assemble','n-release','n-rollback','n-upgrade','n-promote','n-staging','n-prod','n-publish','n-registry','n-pull','n-verify'];
-  const lines = ['l-spec-val','l-val-asm','l-asm-rel','l-rel-art','l-art-rb','l-art-up','l-art-prom','l-prom-stg','l-prom-prd','l-pub-reg','l-reg-pull','l-pull-ver'];
+      <div class="instrument reveal">
+        <div class="term-bar">
+          <i></i><i></i><i></i>
+          <span class="cmd"><b>$</b> evan compare variant_a.yaml variant_b.yaml --trigger "Write a 3-sentence pitch…" --criteria "punchy, concrete, no buzzwords"</span>
+        </div>
+        <div class="panel-body">
+          <div class="cards">
+            <div class="card" data-score="7.0">
+              <div class="tag">Variant A · <b>variant_a.yaml</b></div>
+              <div class="score"><span class="num">0.0</span><span class="den">/10</span></div>
+              <div class="metrics">
+                <div class="m"><span>cost</span><b>$0.0020</b></div>
+                <div class="m"><span>model</span><b>haiku</b></div>
+                <div class="m"><span>in</span><b>10 tok</b></div>
+                <div class="m"><span>out</span><b>509 tok</b></div>
+              </div>
+            </div>
+            <div class="card win" data-score="9.0">
+              <div class="verdict-pill">◀ winner</div>
+              <div class="tag">Variant B · <b>variant_b.yaml</b></div>
+              <div class="score"><span class="num">0.0</span><span class="den">/10</span></div>
+              <div class="metrics">
+                <div class="m"><span>cost</span><b>$0.0023</b></div>
+                <div class="m"><span>model</span><b>sonnet</b></div>
+                <div class="m"><span>in</span><b>3 tok</b></div>
+                <div class="m"><span>out</span><b>152 tok</b></div>
+              </div>
+            </div>
+          </div>
 
-  const timers = [];
-  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
-  function clearTimers() { timers.forEach(clearTimeout); timers.length = 0; }
+          <div class="delta">
+            <div class="lbl">Config delta (A → B)</div>
+            <div class="row"><span class="ch">~</span> model.model_id: <span class="old">'haiku'</span> → <span class="new">'sonnet'</span></div>
+          </div>
 
-  function reset() {
-    nodes.forEach(id => { const n = $(id); if (n) n.classList.remove('active','dim'); });
-    lines.forEach(id => { const l = $(id); if (l) l.classList.remove('flow','lit'); });
-    const art = $('artifact');
-    art.classList.remove('materialized','signed');
-    $('art-hash').textContent = 'h-·········';
-    $('art-ver').textContent = 'av';
-    $('art-sig').textContent = '✍ alice@acme';
-    termEl.innerHTML = '';
-  }
+          <div class="verdict">
+            <div class="head">🏆 Variant B wins — 9.0 vs 7.0</div>
+            <div class="why">B opens with a sharper pain point, the 'last Tuesday' detail is concrete, and "git for the part of your stack that lives in someone's head or a Notion doc" lands harder than A's generic closer.</div>
+            <div class="ship"><span class="pfx">Ship it:</span> evan release variant_b.yaml</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  function activate(id) {
-    const n = $(id);
-    if (n) n.classList.add('active');
-  }
-  function deactivate(id) {
-    const n = $(id);
-    if (n) n.classList.remove('active');
-  }
+  <!-- ── NO API KEY ── -->
+  <section id="run">
+    <div class="wrap">
+      <div class="kicker reveal">Runs anywhere</div>
+      <div class="h2 reveal">Real Claude, no API key.</div>
+      <p class="sub reveal">EvanCore harnesses run on the model you already have. Point a config at the local <code style="font-family:var(--mono);color:var(--cyan)">claude</code> CLI and compare real Claude models with zero setup — your prompts and data never leave your machine.</p>
 
-  function flowLine(id) {
-    const l = $(id);
-    if (!l) return;
-    l.classList.remove('flow','lit');
-    void l.getBoundingClientRect();
-    l.classList.add('flow');
-    setTimeout(() => { l.classList.remove('flow'); l.classList.add('lit'); }, 1600);
-  }
+      <div class="bento">
+        <div class="tile feature reveal">
+          <div class="name">claude-code</div>
+          <div class="desc">Routes through your local <span style="color:var(--fog)">claude</span> CLI using existing auth.</div>
+          <div class="badge">no API key</div>
+        </div>
+        <div class="tile reveal" style="transition-delay:.06s">
+          <div class="name">ollama</div>
+          <div class="desc">Fully offline. Compare local models, $0 per run.</div>
+        </div>
+        <div class="tile reveal" style="transition-delay:.12s">
+          <div class="name">anthropic</div>
+          <div class="desc">Raw API when you want exact per-token cost accounting.</div>
+        </div>
+        <div class="tile reveal" style="transition-delay:.18s">
+          <div class="name">openai</div>
+          <div class="desc">Any OpenAI-compatible endpoint, same spec shape.</div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  function materializeArtifact() {
-    $('artifact').classList.add('materialized');
-  }
+  <!-- ── THE SPINE ── -->
+  <section id="spine">
+    <div class="wrap">
+      <div class="kicker reveal">The spine beneath the lab</div>
+      <div class="h2 reveal">A comparison you can trust, a winner you can ship.</div>
+      <p class="sub reveal">An A/B test is only worth it if the thing you scored is the thing you ship. Every config is a content-addressed, signed, reversible artifact — so "B won" becomes "B is shipped," and stays reversible.</p>
 
-  function typeText(el, text, speed = 40, done) {
-    let i = 0;
-    el.textContent = '';
-    const iv = setInterval(() => {
-      el.textContent = text.slice(0, ++i);
-      if (i >= text.length) { clearInterval(iv); done && done(); }
-    }, speed);
-  }
+      <div class="spine">
+        <ul class="pipe reveal">
+          <li><div><b>content-addressed specs</b><p>blake2b-64 hashing — the exact config you scored is the exact config you ship. No drift.</p></div></li>
+          <li><div><b>overlays</b><p>Author A/B/C variants without copy-pasting whole specs.</p></div></li>
+          <li><div><b>release · rollback · upgrade · promote</b><p>Ship the winner; every release has an inverse; move it across environments.</p></div></li>
+          <li><div><b>signed &amp; verifiable</b><p>Ed25519 signatures + trust + revocation — distribute configs others can verify.</p></div></li>
+        </ul>
+        <div class="ship-card reveal">
+          <div><span class="pfx">$</span> evan release variant_b.yaml --sign alice@acme</div>
+          <div><span class="g">📦 SPEC_RELEASED</span>    h-abc123f7d9e2</div>
+          <div><span class="c">✍  SPEC_SIGNED</span>      alice@acme</div>
+          <div><span class="c">🚀 HARNESS_DEPLOYED</span> app</div>
+          <div style="margin-top:12px"><span class="pfx">$</span> evan rollback h-abc123 --yes</div>
+          <div><span class="a">↩  HARNESS_ROLLED_BACK</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  function showHash() {
-    typeText($('art-hash'), 'h-abc123f7d9e2', 45);
-  }
+  <!-- ── POSITIONING ── -->
+  <section>
+    <div class="wrap">
+      <div class="kicker reveal">Not a tracing tool</div>
+      <div class="pullquote reveal">
+        <p>Tracing tools watch the <span class="hl">run</span>. EvanCore version-controls the <span class="hl">config</span> — and tells you which one to keep.</p>
+      </div>
+      <div class="nots">
+        <div class="not reveal"><div class="x">not this →</div><p>An agent framework. No runtime DSL, no orchestration primitives, no LangGraph / CrewAI overlap.</p></div>
+        <div class="not reveal" style="transition-delay:.07s"><div class="x">not this →</div><p>A hosting platform. You still choose where your agents run.</p></div>
+        <div class="not reveal" style="transition-delay:.14s"><div class="x">not this →</div><p>A dashboard you paste prompts into. The lab runs in your repo and CI; configs stay local.</p></div>
+      </div>
+    </div>
+  </section>
 
-  function showSignature() {
-    $('artifact').classList.add('signed');
-  }
+  <!-- ── END CTA ── -->
+  <section class="endcta">
+    <div class="wrap">
+      <h2 class="reveal">Stop guessing<br />which config is better.</h2>
+      <p class="reveal">EvanCore is in private beta. The design, spec schema, and evaluation log are open. The engine is closed.</p>
+      <div class="cta-row reveal">
+        <a class="btn primary" href="https://github.com/Evanyuan-builder/evancore/issues">Request access</a>
+        <a class="btn ghost" href="https://github.com/Evanyuan-builder/evancore">Read the design ↗</a>
+      </div>
+    </div>
+  </section>
 
-  function rollbackEffect() {
-    const el = $('art-hash');
-    let i = 0;
-    const iv = setInterval(() => {
-      el.textContent = 'h-' + Math.random().toString(16).slice(2, 14);
-      if (++i >= 6) {
-        clearInterval(iv);
-        el.textContent = 'h-3c21b0f8e5a4';
-      }
-    }, 60);
-  }
+  <footer>
+    <div class="wrap">
+      <div class="brand"><span class="dot"></span>EvanCore</div>
+      <div class="closed"><b>Public design</b> · private core · Apache-2.0 on materials here</div>
+      <div>
+        <a href="https://github.com/Evanyuan-builder/evancore">GitHub</a> ·
+        <a href="philosophy.md">Philosophy</a> ·
+        <a href="spec-schema.md">Spec schema</a> ·
+        <a href="evaluations.md">Evaluations</a>
+      </div>
+    </div>
+  </footer>
 
-  function upgradeEffect() {
-    const el = $('art-hash');
-    let i = 0;
-    const iv = setInterval(() => {
-      el.textContent = 'h-' + Math.random().toString(16).slice(2, 14);
-      if (++i >= 6) {
-        clearInterval(iv);
-        el.textContent = 'h-5e94d6fa2b1c';
-      }
-    }, 60);
-  }
+  <script>
+    // Scroll reveals
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { threshold: .14 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  function writeTerm(text, kind) {
-    const line = document.createElement('span');
-    line.className = 'term-line' + (kind ? ' ' + kind : '');
-    if (kind === 'cmd') {
-      line.innerHTML = '<span class="prompt">$</span> <span class="cmd"></span>';
-      const cmdEl = line.querySelector('.cmd');
-      termEl.appendChild(line);
-      typeText(cmdEl, text, 28);
-    } else {
-      line.textContent = text;
-      termEl.appendChild(line);
-    }
-    termEl.scrollTop = termEl.scrollHeight;
-  }
-
-  function runCycle() {
-    reset();
-
-    // BUILD path
-    at(300,  () => { activate('n-spec'); });
-    at(700,  () => { flowLine('l-spec-val'); });
-    at(1100, () => { activate('n-validate'); });
-    at(1500, () => { flowLine('l-val-asm'); });
-    at(1900, () => { activate('n-assemble'); });
-    at(2300, () => { flowLine('l-asm-rel'); });
-    at(2700, () => { activate('n-release'); });
-    at(3100, () => { flowLine('l-rel-art'); });
-    at(3500, () => { materializeArtifact(); });
-    at(3900, () => { showHash(); });
-    at(5200, () => { showSignature(); });
-
-    // TERMINAL (build)
-    at(400,  () => writeTerm('evan validate app.yaml', 'cmd'));
-    at(1400, () => writeTerm('✓ app.yaml passes', 'ok'));
-    at(2000, () => writeTerm('evan release app.yaml --sign alice@acme', 'cmd'));
-    at(3600, () => writeTerm('📦 SPEC_RELEASED  h-abc123f7d9e2', 'evt'));
-    at(4400, () => writeTerm('✍  SPEC_SIGNED    alice@acme', 'evt'));
-    at(5000, () => writeTerm('🚀 HARNESS_DEPLOYED app (av)', 'evt'));
-
-    // ROLLBACK
-    at(6200, () => { activate('n-rollback'); flowLine('l-art-rb'); });
-    at(6400, () => rollbackEffect());
-    at(6600, () => writeTerm('evan rollback h-abc123 --yes', 'cmd'));
-    at(7200, () => { deactivate('n-rollback'); writeTerm('↩  HARNESS_ROLLED_BACK  h-3c21b0f8e5a4', 'evt'); });
-
-    // UPGRADE
-    at(7500, () => { activate('n-upgrade'); flowLine('l-art-up'); });
-    at(7700, () => upgradeEffect());
-    at(8500, () => { deactivate('n-upgrade'); });
-
-    // PROMOTE
-    at(8900, () => { activate('n-promote'); flowLine('l-art-prom'); });
-    at(9300, () => { activate('n-staging'); flowLine('l-prom-stg'); });
-    at(9700, () => writeTerm('evan promote prod.yaml --from staging-app', 'cmd'));
-    at(10300, () => { activate('n-prod'); flowLine('l-prom-prd'); });
-    at(10800, () => writeTerm('🚀 HARNESS_DEPLOYED prod-app (promoted)', 'evt'));
-
-    // DISTRIBUTION
-    at(11400, () => { activate('n-publish'); flowLine('l-pub-reg'); });
-    at(12000, () => { activate('n-registry'); flowLine('l-reg-pull'); });
-    at(12600, () => { activate('n-pull'); flowLine('l-pull-ver'); });
-    at(13200, () => { activate('n-verify'); });
-    at(13800, () => writeTerm('✓ signature verified · trust: alice@acme', 'ok'));
-  }
-
-  runCycle();
-  setInterval(() => { clearTimers(); runCycle(); }, CYCLE_MS);
-})();
-</script>
+    // Score count-up when the instrument enters view
+    const scoreIO = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const card = e.target;
+        const target = parseFloat(card.dataset.score);
+        const num = card.querySelector('.num');
+        let t0 = null; const dur = 1100;
+        const tick = (ts) => {
+          if (!t0) t0 = ts;
+          const p = Math.min((ts - t0) / dur, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          num.textContent = (target * eased).toFixed(1);
+          if (p < 1) requestAnimationFrame(tick);
+          else num.textContent = target.toFixed(1);
+        };
+        requestAnimationFrame(tick);
+        scoreIO.unobserve(card);
+      });
+    }, { threshold: .5 });
+    document.querySelectorAll('.card[data-score]').forEach(c => scoreIO.observe(c));
+  </script>
 </body>
 </html>
