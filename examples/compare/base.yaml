@@ -1,0 +1,28 @@
+# A/B base config. The two variants change only the model; `evan compare`
+# runs both on the same task and an LLM judge decides which won.
+kind: AgentHarness
+id: compare-base
+
+role:
+  ref: "builtin://roles/writer"
+  version: "latest"
+
+memory:
+  private_ns: "localmem://compare.private"
+  shared_ns: []
+  ttl: "7d"
+
+# Run with no API key via the local `claude` CLI:
+#   provider: claude-code   →  model_id: haiku | sonnet | opus
+# Or offline: provider: ollama, model_id: qwen3:8b
+# Or raw API: provider: anthropic / openai
+model:
+  provider: claude-code
+  model_id: sonnet
+  temperature: 0.3
+  max_tokens: 1024
+
+tools: []          # pure generation → clean outputs for the judge to compare
+
+policies:
+  budget_limit_usd: 1.0

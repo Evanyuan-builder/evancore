@@ -1,0 +1,7 @@
+# Variant B — the bigger/stronger model.
+kind: OverlaySpec
+base: base.yaml
+overrides:
+  id: compare-sonnet
+  model:
+    model_id: sonnet

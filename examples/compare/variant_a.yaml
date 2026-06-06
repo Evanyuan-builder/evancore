@@ -1,0 +1,7 @@
+# Variant A — the cheap/fast model.
+kind: OverlaySpec
+base: base.yaml
+overrides:
+  id: compare-haiku
+  model:
+    model_id: haiku
